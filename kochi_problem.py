@@ -28,6 +28,8 @@ class AbstractSolver(ABC):
         self.K = [0 for i in range(6)]
         self.x = [self.start]  # Массив значений x.
         self.y = [self.condition]  # Массив векторных значений y.
+        self.y_add = 0
+        self.x_add = 0
         self.h = 0.01  # Шаг разбиения.
 
     @abstractmethod
@@ -96,28 +98,48 @@ class FirstSolver(AbstractSolver):
     def __init__(self, start, end, error, condition, function):
         super().__init__(start, end, error, condition, function)
 
-    def _calcuate_K(self, num):
-        self.K[1] = self.h * self.function(self.x[num], self.y[num])
+    def _calcuate_K(self, num=None, add=False):
+        if add is False:
+            Y = self.y[num]
+            X = self.x[num]
+        else:
+            Y = self.y_add
+            X = self.x_add
 
-        x = self.x[num] + 0.5 * self.h
-        y = self.y[num] + 0.5 * self.K[1]
+        self.K[1] = self.h * self.function(X, Y)
+
+        x = X + 0.5 * self.h
+        y = Y + 0.5 * self.K[1]
         self.K[2] = self.h * self.function(x, y)
 
-        x = self.x[num] + self.h
-        y = self.y[num] - self.K[1] + self.K[2]
+        x = X + self.h
+        y = Y - self.K[1] + self.K[2]
         self.K[3] = self.h * self.function(x, y)
 
-    def _calculate_y(self, num):
-        y_Nplus1 = self.y[num] + (1.0 / 6) * (self.K[1] + 4*self.K[2]
+    def _calculate_y(self, num=None, add=False):
+        if add is False:
+            Y = self.y[num]
+        else:
+            Y = self.y_add
+
+        y_Nplus1 = Y + (1.0 / 6) * (self.K[1] + 4*self.K[2]
                                               + self.K[3])
         return y_Nplus1
 
     def _calculate_additional_y(self, num):
         old_h = self.h
-        self.h /= 2
+        self.h /= 2.0
 
-        self._calcuate_K(num)
-        additional_y_Nplus1 = self._calculate_y(num)
+        self.x_add = self.x[num]
+        self.y_add = self.y[num]
+        self._calcuate_K(add=True)
+        self.y_add = self._calculate_y(add=True)
+
+        self.x_add = self.x[num] + self.h
+        self._calcuate_K(add=True)
+        self.y_add = self._calculate_y(add=True)
+
+        additional_y_Nplus1 = self.y_add
 
         self.h = old_h
 
@@ -129,7 +151,6 @@ class FirstSolver(AbstractSolver):
         y_Nplus1 = self.y[num+1]
         additional_y_Nplus1 = self._calculate_additional_y(num)
 
-        # TODO: добавить поддержку векторных операций.
         s = 2  # Т.к. порядок задается O(h^2).
         loss = (np.array(y_Nplus1) - np.array(additional_y_Nplus1)) / (1 - 2.0 / 2**(s))
         return np.max(loss)
@@ -213,8 +234,9 @@ def decorator_counter(func):
 
 @decorator_counter
 def right_function(x, y):
-    return 1
-    # return np.array([y[1], y[0]])
+    # return 1
+    # return x
+    return np.array([y[1], y[0]])
     # return np.array([y[0]])
 
 
@@ -222,21 +244,22 @@ if __name__ == '__main__':
     start = 0
     end = 1
     error = 1e-3
-    condition = 0
-    # condition = np.array([1, 1])
+    # condition = 0
+    condition = np.array([1, 1])
     # condition = np.array([1])
     function = right_function
 
-    solver = FirstSolver(start, end, error, condition, function)
+    # solver = FirstSolver(start, end, error, condition, function)
+    # solver = SecondSolver(start, end, error, condition, function)
+    solver = ThirdSolver(start, end, error, condition, function)
 
     time_start = time.time()
     solver.solve_problem()
     time_end = time.time()
-    print("Time for solving using first method = {0} \
-          \nNumber of function calls = {1}" \
+    print("Time for solving using method = {0} \
+          \nNumber of function calls = {1}"
           .format(time_end - time_start, function.count))
 
-
-    # plt.plot(solver.x, np.array(solver.y)[:, 0])
-    plt.plot(solver.x, solver.y)
+    plt.plot(solver.x, np.array(solver.y)[:, 0])
+    # plt.plot(solver.x, solver.y)
     plt.show()
