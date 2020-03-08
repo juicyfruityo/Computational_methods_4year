@@ -30,7 +30,7 @@ class AbstractSolver(ABC):
         self.y = [self.condition]  # Массив векторных значений y.
         self.y_add = 0
         self.x_add = 0
-        self.h = 0.01  # Шаг разбиения.
+        self.h = 0.001  # Шаг разбиения.
 
     @abstractmethod
     def _calcuate_K(self, num):
@@ -235,23 +235,23 @@ def decorator_counter(func):
 @decorator_counter
 def right_function(x, y):
     # return 1
-    # return x
-    return np.array([y[1], y[0]])
+    return y
+    # return np.array([y[1], y[0]])
     # return np.array([y[0]])
 
 
 if __name__ == '__main__':
     start = 0
     end = 1
-    error = 1e-3
-    # condition = 0
-    condition = np.array([1, 1])
+    error = 1e-6
+    condition = 1
+    # condition = np.array([1, 1])
     # condition = np.array([1])
     function = right_function
 
-    # solver = FirstSolver(start, end, error, condition, function)
+    solver = FirstSolver(start, end, error, condition, function)
     # solver = SecondSolver(start, end, error, condition, function)
-    solver = ThirdSolver(start, end, error, condition, function)
+    # solver = ThirdSolver(start, end, error, condition, function)
 
     time_start = time.time()
     solver.solve_problem()
@@ -260,6 +260,8 @@ if __name__ == '__main__':
           \nNumber of function calls = {1}"
           .format(time_end - time_start, function.count))
 
-    plt.plot(solver.x, np.array(solver.y)[:, 0])
-    # plt.plot(solver.x, solver.y)
+    print(solver.y[-1])
+
+    # plt.plot(solver.x, np.array(solver.y)[:, 0])
+    plt.plot(solver.x, solver.y)
     plt.show()
